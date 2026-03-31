@@ -1,6 +1,30 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(!!localStorage.getItem('token'));
+    };
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('auth-change', checkAuth);
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('auth-change', checkAuth);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.dispatchEvent(new Event('auth-change'));
+    setIsDropdownOpen(false);
+    navigate('/');
+  };
   const links = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
@@ -18,7 +42,7 @@ export default function Navbar() {
               Yale School <br className="hidden md:block"/> of Art
             </Link>
           </div>
-          <div className="flex space-x-2 md:space-x-6 mt-4 md:mt-0 font-bold text-lg md:text-2xl uppercase">
+          <div className="flex space-x-2 md:space-x-6 mt-4 md:mt-0 font-bold text-lg md:text-2xl uppercase items-center">
             {links.map((link) => (
               <Link
                 key={link.name}
@@ -28,6 +52,49 @@ export default function Navbar() {
                 {link.name}
               </Link>
             ))}
+            
+            <div className="relative ml-4">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-12 h-12 border-4 border-[var(--color-border)] bg-[var(--color-surface)] brutal-shadow-hover flex items-center justify-center hover:bg-[var(--color-primary)] hover:text-white transition-colors cursor-pointer"
+                title="Account"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--color-surface)] border-4 border-[var(--color-border)] brutal-shadow flex flex-col z-[100] text-lg">
+                  {!isLoggedIn ? (
+                    <>
+                      <Link 
+                        to="/login"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="px-4 py-3 border-b-4 border-[var(--color-border)] hover:bg-[var(--color-primary)] hover:text-white transition-colors no-underline text-[var(--color-text-primary)] block"
+                      >
+                        Login
+                      </Link>
+                      <Link 
+                        to="/register"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="px-4 py-3 hover:bg-[var(--color-primary)] hover:text-white transition-colors no-underline text-[var(--color-text-primary)] block"
+                      >
+                        Register
+                      </Link>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={handleLogout}
+                      className="px-4 py-3 text-left hover:bg-black hover:text-white transition-colors font-bold uppercase w-full block cursor-pointer"
+                    >
+                      Logout
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
