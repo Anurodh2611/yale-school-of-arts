@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -18,9 +20,7 @@ export default function Login() {
             });
             const data = await response.json();
             if (response.ok) {
-                localStorage.setItem('token', data.token);
-                // Trigger an event so navbar can update without refresh
-                window.dispatchEvent(new Event('auth-change'));
+                login(data.token);   // AuthContext handles storage + state
                 navigate('/');
             } else {
                 setError(data.error || 'Login failed');
@@ -29,6 +29,7 @@ export default function Login() {
             setError('Network error: Ensure backend is running.');
         }
     };
+
 
     return (
         <div className="flex-1 flex items-center justify-center p-4">

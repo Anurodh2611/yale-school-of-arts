@@ -1,30 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, logout } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      setIsLoggedIn(!!localStorage.getItem('token'));
-    };
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    window.addEventListener('auth-change', checkAuth);
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('auth-change', checkAuth);
-    };
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.dispatchEvent(new Event('auth-change'));
+    logout();
     setIsDropdownOpen(false);
     navigate('/');
   };
+
   const links = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
