@@ -7,6 +7,7 @@ export default function Events() {
 
   const [events, setEvents] = useState([]);
   const [appliedEventIds, setAppliedEventIds] = useState([]);
+  const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
 
@@ -48,9 +49,31 @@ export default function Events() {
     }
   };
 
+  const fetchRegistrations = async () => {
+    if (!isLoggedIn || !isAdmin) {
+      setRegistrations([]);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/events/registrations', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) throw new Error('Failed to load registrations');
+
+      const data = await res.json();
+      setRegistrations(data);
+    } catch (err) {
+      console.error('Failed to fetch registrations', err);
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
     fetchAppliedEvents();
+    fetchRegistrations();
   }, [isLoggedIn, role]);
 
   const handleApply = async (eventId) => {
@@ -104,6 +127,7 @@ export default function Events() {
         setFormData({ title: '', description: '', date: '' });
         setShowForm(false);
         fetchEvents(); // Refresh list
+        fetchRegistrations();
       } else {
         setFormError(data.error || 'Failed to create event');
       }
@@ -121,6 +145,16 @@ export default function Events() {
       month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
       day: d.getDate()
     };
+  };
+
+  const formatFullDate = (dateStr) => {
+    if (!dateStr) return 'Date unavailable';
+
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -202,6 +236,61 @@ export default function Events() {
             </button>
           </form>
         </div>
+      )}
+
+      {isAdmin && (
+        <section className="mb-10 p-6 md:p-8 border-4 border-[var(--color-border)] bg-[var(--color-surface)] brutal-shadow">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div>
+              <h2 className="text-3xl font-black uppercase text-[var(--color-primary)]">Registrations</h2>
+              <p className="text-sm md:text-base font-bold uppercase text-[var(--color-text-primary)]">
+                See which user registered for which event
+              </p>
+            </div>
+            <div className="px-4 py-2 border-4 border-[var(--color-border)] bg-[var(--color-accent)] font-black uppercase text-sm">
+              Total: {registrations.length}
+            </div>
+          </div>
+
+          {registrations.length === 0 ? (
+            <div className="p-6 border-4 border-dashed border-[var(--color-border)] text-center font-bold uppercase text-[var(--color-text-primary)]">
+              No registrations yet.
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {registrations.map((registration) => (
+                <article
+                  key={registration._id}
+                  className="border-4 border-[var(--color-border)] bg-white p-4 md:p-5"
+                >
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div>
+                      <p className="text-2xl font-black uppercase text-[var(--color-primary)]">
+                        {registration.student?.username || 'Unknown user'}
+                      </p>
+                      <p className="text-sm font-bold text-gray-600 break-all">
+                        {registration.student?.email || 'No email available'}
+                      </p>
+                    </div>
+                    <div className="text-left md:text-right">
+                      <p className="text-xs font-black uppercase text-gray-500">Registered For</p>
+                      <p className="text-xl font-black uppercase text-[var(--color-text-primary)]">
+                        {registration.event?.title || 'Deleted event'}
+                      </p>
+                      <p className="text-sm font-bold text-gray-600">
+                        {formatFullDate(registration.event?.date)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 pt-4 border-t-4 border-[var(--color-border)] text-sm font-bold uppercase text-gray-700">
+                    Applied on {formatFullDate(registration.appliedAt)}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       {/* Events list */}
