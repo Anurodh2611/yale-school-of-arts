@@ -6,6 +6,7 @@ export default function Events() {
   const isAdmin = role === 'admin';
 
   const [events, setEvents] = useState([]);
+  const [appliedEventIds, setAppliedEventIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
 
@@ -31,9 +32,51 @@ export default function Events() {
     }
   };
 
+  const fetchAppliedEvents = async () => {
+    if (!isLoggedIn || role !== 'user') return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/events/applications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAppliedEventIds(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch applied events', err);
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
-  }, []);
+    fetchAppliedEvents();
+  }, [isLoggedIn, role]);
+
+  const handleApply = async (eventId) => {
+    setFormError('');
+    setFormSuccess('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/events/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ eventId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFormSuccess('✅ Applied successfully!');
+        setAppliedEventIds(prev => [...prev, eventId]);
+      } else {
+        setFormError(data.error || 'Failed to apply');
+      }
+    } catch (err) {
+      setFormError('Network error. Failed to apply.');
+    }
+  };
 
   const handleFormChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -207,6 +250,27 @@ export default function Events() {
                   <p className="mt-4 text-lg border-t-4 border-[var(--color-border)] pt-4">
                     {event.description}
                   </p>
+
+                  {/* Student: Apply functionality */}
+                  {isLoggedIn && role === 'user' && (
+                    <div className="mt-6">
+                      {appliedEventIds.includes(event._id) ? (
+                        <button
+                          disabled
+                          className="px-6 py-2 font-black uppercase text-sm border-4 border-gray-400 bg-gray-200 text-gray-500 cursor-not-allowed"
+                        >
+                          Applied
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleApply(event._id)}
+                          className="px-6 py-2 font-black uppercase text-sm border-4 border-[var(--color-border)] bg-[var(--color-primary)] text-[var(--color-text-light)] brutal-shadow hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                        >
+                          Apply
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
