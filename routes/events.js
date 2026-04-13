@@ -92,4 +92,37 @@ router.get('/applications', authMiddleware, async (req, res) => {
     }
 });
 
+router.get('/registrations', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const registrations = await Application.find()
+            .populate('studentId', 'username email')
+            .populate('eventId', 'title date')
+            .sort({ createdAt: -1 });
+
+        const formattedRegistrations = registrations.map((registration) => ({
+            _id: registration._id,
+            appliedAt: registration.appliedAt,
+            student: registration.studentId
+                ? {
+                    _id: registration.studentId._id,
+                    username: registration.studentId.username,
+                    email: registration.studentId.email
+                }
+                : null,
+            event: registration.eventId
+                ? {
+                    _id: registration.eventId._id,
+                    title: registration.eventId.title,
+                    date: registration.eventId.date
+                }
+                : null
+        }));
+
+        res.json(formattedRegistrations);
+    } catch (error) {
+        console.error('Fetch registrations error:', error);
+        res.status(500).json({ error: 'Failed to fetch registrations' });
+    }
+});
+
 export default router;
